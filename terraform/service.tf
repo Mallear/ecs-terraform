@@ -40,11 +40,11 @@ resource "aws_ecs_service" "this" {
 
   deployment_maximum_percent         = 100
   deployment_minimum_healthy_percent = 0
-
-  # network_configuration {
-  #   subnets         = module.vpc.private_subnets
-  #   security_groups = [aws_security_group.svc.id]
-  # }
+  capacity_provider_strategy {
+    base              = 0
+    weight            = 1
+    capacity_provider = aws_ecs_capacity_provider.prov1.name
+  }
 
   load_balancer {
     target_group_arn = aws_lb_target_group.this.arn

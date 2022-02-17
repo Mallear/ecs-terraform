@@ -10,7 +10,7 @@ module "asg" {
   create_lc = true
 
   image_id                  = data.aws_ami.amazon_linux_ecs.id
-  instance_type             = "t2.micro"
+  instance_type             = "t3.medium"
   security_groups           = [module.vpc.default_security_group_id]
   iam_instance_profile_name = aws_iam_instance_profile.this.id
   user_data                 = <<EOF
