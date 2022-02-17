@@ -19,3 +19,7 @@ data "aws_ami" "amazon_linux_ecs" {
     values = ["amazon"]
   }
 }
+
+data "aws_iam_role" "service_ecs" {
+  name = "AWSServiceRoleForECS"
+}

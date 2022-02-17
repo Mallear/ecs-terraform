@@ -13,6 +13,10 @@ module "asg" {
   instance_type             = "t2.micro"
   security_groups           = [module.vpc.default_security_group_id]
   iam_instance_profile_name = aws_iam_instance_profile.this.id
+  user_data                 = <<EOF
+  #!/bin/bash
+  echo ECS_CLUSTER=ecs-${local.name_suffix} >> /etc/ecs/ecs.config
+  EOF
 
   # Auto scaling group
   vpc_zone_identifier       = module.vpc.private_subnets

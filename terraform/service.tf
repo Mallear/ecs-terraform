@@ -2,29 +2,33 @@
 resource "aws_cloudwatch_log_group" "this" {
   name              = "ecs-${local.name_suffix}"
   retention_in_days = 1
-  kms_key_id        = aws_kms_key.this.id
 }
 
 resource "aws_ecs_task_definition" "this" {
   family = "hello-worls-${local.name_suffix}"
 
-  container_definitions = <<EOF
-[
-  {
-    "name": "hello_world-${local.environment}",
-    "image": "digitalocean/flask-helloworld:latest",
-    "cpu": 0,
-    "memory": 128,
-    "logConfiguration": {
-      "logDriver": "awslogs",
-      "options": {
-        "awslogs-region": "${data.aws_region.current.name}",
-        "awslogs-group": "${aws_cloudwatch_log_group.this.name}"
+  container_definitions = jsonencode([
+    {
+      name   = "hello_world-${local.environment}"
+      image  = "digitalocean/flask-helloworld:latest"
+      cpu    = 1
+      memory = 512
+      portMappings = [
+        {
+          containerPort = 5000
+          hostPort      = 5000
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-region = "${data.aws_region.current.name}"
+          awslogs-group  = "${aws_cloudwatch_log_group.this.name}"
+        }
       }
+
     }
-  }
-]
-EOF
+  ])
 }
 
 resource "aws_ecs_service" "this" {
@@ -36,4 +40,33 @@ resource "aws_ecs_service" "this" {
 
   deployment_maximum_percent         = 100
   deployment_minimum_healthy_percent = 0
+
+  # network_configuration {
+  #   subnets         = module.vpc.private_subnets
+  #   security_groups = [aws_security_group.svc.id]
+  # }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.this.arn
+    container_name   = "hello_world-${local.environment}"
+    container_port   = 5000
+  }
+}
+
+
+resource "aws_security_group" "svc" {
+  name        = "svc-${local.name_suffix}-sg"
+  description = "Security Group for svc"
+  vpc_id      = module.vpc.vpc_id
+}
+
+
+resource "aws_security_group_rule" "public_svc_ingress" {
+  description              = "Open from LB"
+  type                     = "ingress"
+  from_port                = 5000
+  to_port                  = 5000
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.lb.id
+  security_group_id        = aws_security_group.svc.id
 }
